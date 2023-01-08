@@ -1,29 +1,91 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import { computed, onMounted, ref } from 'vue';
+
+const ratesAr = ref([]);
+const rateClp = ref(840);
+const selectedArRate = ref(1);
+const clpAmount = ref(0);
+
+const rateArs = computed( () => {
+  if ( ratesAr.value.length == 0 ) return null;
+
+  return parseFloat(ratesAr.value[selectedArRate.value].venta.replace(',', '.'));
+})
+
+const exchange = computed( () => {
+  if ( rateClp.value === 0 || rateArs.value === 0) {
+    return 0; 
+  } 
+
+  const rate = rateArs.value / rateClp.value; 
+
+  return (clpAmount.value * rate).toFixed(2);
+})
+
+
+onMounted( () => {
+  if ( sessionStorage.getItem('cotizaciones')) {
+    ratesAr.value = JSON.parse(sessionStorage.getItem('cotizaciones')); 
+    return; 
+  } 
+
+  fetch('https://mercados.ambito.com/home/general').then(res => res.json())
+    .then( res => {
+      ratesAr.value = res.filter( rate => rate.nombre.includes('Dólar'));
+      sessionStorage.setItem('cotizaciones', JSON.stringify(ratesAr.value));
+    }); 
+});
 </script>
 
 <template>
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
+
+<h1>Rápida calculadora de cambio</h1>
+<div class="input-group">
+  <label for="rateAr">Seleccionar Tipo de Dolar</label>
+  <select name="rates" id="rateAr" v-model="selectedArRate">
+    <option v-for="(rate, index) in ratesAr" :value="index" :key="index">
+      {{ rate.nombre }} - ${{  rate.venta  }} 
+    </option>
+  </select>
+</div>
+
+<div class="input-group">
+  <label for="">Cotizacion USD a CLP</label>
+  <input type="number" v-model="rateClp">
+</div>
+
+<div class="input-group">
+  <label for="">Pesos Chilenos</label>
+  <input type="number" v-model="clpAmount" class="big">
+</div>
+
+<h3>Total en ARS: {{ exchange }}</h3>
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
+
+<style>
+h1 {
+  font-size: 22px;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+
+.input-group {
+  display: block; 
+  margin-bottom: 20px;
+  text-align: left;
 }
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+
+.input-group label {
+  display: block; 
+  font-weight: bold;
 }
+
+.input-group input, 
+.input-group select {
+  display: block; 
+  width: 100%; 
+}
+
+.input-group input.big {
+  font-size: 20px;
+} 
 </style>
