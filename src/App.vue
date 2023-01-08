@@ -1,10 +1,18 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const ratesAr = ref([]);
-const rateClp = ref(840);
-const selectedArRate = ref(1);
+const rateClp = ref(parseFloat(localStorage.getItem('rate-clp')) || 840 );
+const selectedArRate = ref(parseInt(localStorage.getItem('selected-rate')) || 1);
 const clpAmount = ref(0);
+
+watch(rateClp, (newVal, oldVal) => {
+  localStorage.setItem('rate-clp', newVal);
+})
+
+watch(selectedArRate, (newVal, oldVal) => {
+  localStorage.setItem('selected-rate', newVal);
+});
 
 const rateArs = computed( () => {
   if ( ratesAr.value.length == 0 ) return null;
@@ -22,6 +30,15 @@ const exchange = computed( () => {
   return (clpAmount.value * rate).toFixed(2);
 })
 
+const exchangeUsd = computed( () => {
+  if ( rateClp.value === 0 ) {
+    return 0; 
+  } 
+
+  const rate = rateClp.value; 
+
+  return (clpAmount.value / rate).toFixed(2);
+})
 
 onMounted( () => {
   if ( sessionStorage.getItem('cotizaciones')) {
@@ -51,15 +68,18 @@ onMounted( () => {
 
 <div class="input-group">
   <label for="">Cotizacion USD a CLP</label>
-  <input type="number" v-model="rateClp">
+  <input type="number" v-model="rateClp" min="1" step="any">
 </div>
 
 <div class="input-group">
   <label for="">Pesos Chilenos</label>
-  <input type="number" v-model="clpAmount" class="big">
+  <input type="number" min="1" step="any" v-model="clpAmount" class="big">
 </div>
 
+<hr>
+
 <h3>Total en ARS: {{ exchange }}</h3>
+<h3>Total en USD: {{  exchangeUsd }} </h3>
 </template>
 
 
@@ -82,7 +102,8 @@ h1 {
 .input-group input, 
 .input-group select {
   display: block; 
-  width: 100%; 
+  width: 100%;
+  padding: 3px 10px;
 }
 
 .input-group input.big {
